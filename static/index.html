@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Línea</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: #111;
+      color: #111;
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+    body { display: flex; flex-direction: column; }
+    #banner {
+      display: none;
+      background: #111;
+      color: #fff;
+      text-align: center;
+      font-size: 3vh;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.7vh 0;
+    }
+    #banner.show { display: block; }
+    #banner.demo { background: #f08c00; color: #111; }
+    #board {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1.35fr 0.72fr 1fr;
+      gap: 8px;
+      padding: 8px;
+      background: #111;
+    }
+    .cell {
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      padding: 1vh 1.4vw 0.6vh;
+    }
+    .label {
+      font-size: 3.4vh;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      text-align: center;
+    }
+    .value {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18vh;
+      font-weight: 800;
+      line-height: 0.85;
+      font-variant-numeric: tabular-nums;
+    }
+    .mid .label { font-size: 2.5vh; }
+    .mid .value { font-size: 9vh; }
+    .total {
+      grid-column: 1 / -1;
+      flex-direction: row;
+      align-items: center;
+      padding-right: 3vw;
+    }
+    .total .label {
+      width: 30%;
+      font-size: 7vh;
+      text-align: left;
+      padding-left: 1vw;
+    }
+    .total .value {
+      justify-content: flex-end;
+      font-size: 14vh;
+      padding-right: 1vw;
+    }
+    .value.empty { font-size: 8vh; }
+    .total .value.empty { justify-content: center; }
+    #cell-cajas.green,
+    #cell-promedio.green { background: #128a2e; color: #fff; }
+    #cell-cajas.amber,
+    #cell-promedio.amber { background: #f08c00; color: #111; }
+    #cell-cajas.red,
+    #cell-promedio.red { background: #c41212; color: #fff; }
+    #board.hide-promedio #cell-cajas { grid-column: 1 / -1; }
+    #cell-promedio.is-hidden { display: none; }
+    #board.stale .cell { background: #e4e4e4; color: #3a3a3a; }
+    #open-settings {
+      position: fixed;
+      right: 12px;
+      bottom: 12px;
+      background: rgba(0, 0, 0, 0.55);
+      color: #fff;
+      border: 0;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font: 700 14px "Segoe UI", Arial, sans-serif;
+      cursor: pointer;
+    }
+    #panel {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #panel[hidden] { display: none !important; }
+    form {
+      background: #fff;
+      color: #111;
+      width: min(520px, 92vw);
+      padding: 24px;
+      border-radius: 10px;
+      display: grid;
+      gap: 12px;
+    }
+    h2 { margin: 0; font-size: 22px; }
+    label { display: grid; gap: 4px; font-weight: 700; }
+    label.check { display: flex; align-items: center; gap: 8px; }
+    input {
+      font: 700 22px "Segoe UI", Arial, sans-serif;
+      padding: 8px 10px;
+    }
+    .hint, .note { font-weight: 400; line-height: 1.35; }
+    .note { font-size: 14px; color: #333; }
+    .actions { display: flex; gap: 8px; justify-content: flex-end; }
+    button.primary, button.ghost {
+      font: 700 16px "Segoe UI", Arial, sans-serif;
+      padding: 10px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button.primary { background: #111; color: #fff; border: 0; }
+    button.ghost { background: #fff; border: 1px solid #111; }
+    #error { color: #c41212; font-weight: 700; min-height: 1.2em; margin: 0; }
+    #saved {
+      position: fixed;
+      right: 12px;
+      bottom: 52px;
+      background: #128a2e;
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-weight: 700;
+    }
+    #saved[hidden] { display: none !important; }
+    @media (max-width: 800px) {
+      .value { font-size: 11vh; }
+      .mid .value { font-size: 6vh; }
+      .total { flex-direction: column; align-items: stretch; }
+      .total .label { width: auto; text-align: center; font-size: 4vh; }
+      .total .value { justify-content: center; font-size: 9vh; }
+    }
+  </style>
+</head>
+<body>
+  <div id="banner">Sin conexión</div>
+  <main id="board" class="stale hide-promedio">
+    <section class="cell" id="cell-cajas">
+      <div class="label">Cajas / min</div>
+      <div class="value empty" id="v-cajas">—</div>
+    </section>
+    <section class="cell is-hidden" id="cell-promedio">
+      <div class="label">Promedio</div>
+      <div class="value empty" id="v-promedio">—</div>
+    </section>
+    <section class="cell mid">
+      <div class="label">Paros (min)</div>
+      <div class="value empty" id="v-paros-min">—</div>
+    </section>
+    <section class="cell mid">
+      <div class="label">Paros (veces)</div>
+      <div class="value empty" id="v-paros-veces">—</div>
+    </section>
+    <section class="cell total">
+      <div class="label">Total</div>
+      <div class="value empty" id="v-total">—</div>
+    </section>
+  </main>
+  <button id="open-settings" type="button">Ajustes</button>
+  <div id="saved" hidden>Guardado</div>
+  <div id="panel" hidden>
+    <form id="form">
+      <h2>Meta de cajas por minuto</h2>
+      <label>Verde desde
+        <input id="green-at" name="green_at" type="number" min="0" max="100000" required>
+      </label>
+      <label>Rojo por debajo de
+        <input id="red-below" name="red_below" type="number" min="0" max="100000" required>
+      </label>
+      <p class="hint" id="hint"></p>
+      <label>Segundos sin pulso
+        <input id="stop-gap" name="stop_gap_seconds" type="number" min="1" max="3600" required>
+      </label>
+      <p class="note">El temporizador del sensor está en el PLC. Al cambiar estos segundos hay que dejar el mismo número en el programa del PLC. La pantalla solo lo guarda.</p>
+      <label class="check"><input id="demo" type="checkbox"> Simular sin PLC</label>
+      <p class="note">Muestra 170 cajas/min, paros 98 y 59, total 16.935. El color usa la meta de arriba.</p>
+      <label class="check"><input id="show-promedio" type="checkbox"> Mostrar promedio del turno</label>
+      <p class="note">Apagado, la pantalla enseña solo las cuatro cifras y el color va en Cajas/min. Encendido, vuelve el recuadro Promedio y el color pasa a ese número.</p>
+      <p id="error"></p>
+      <div class="actions">
+        <button class="ghost" id="cancel" type="button">Cerrar</button>
+        <button class="primary" type="submit">Guardar</button>
+      </div>
+    </form>
+  </div>
+  <script>
+    const board = document.getElementById("board");
+    const banner = document.getElementById("banner");
+    const promedioCell = document.getElementById("cell-promedio");
+    const cajasCell = document.getElementById("cell-cajas");
+    const panel = document.getElementById("panel");
+    const form = document.getElementById("form");
+    const hint = document.getElementById("hint");
+    const error = document.getElementById("error");
+    const saved = document.getElementById("saved");
+    let latest = null;
+
+    function formatNumber(value, miles) {
+      if (value === null || value === undefined) return "—";
+      const rounded = Math.round(value);
+      if (!miles) return String(rounded);
+      const sign = rounded < 0 ? "-" : "";
+      return sign + String(Math.abs(rounded)).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    }
+
+    function setValue(id, value, miles) {
+      const node = document.getElementById(id);
+      const empty = value === null || value === undefined;
+      node.textContent = formatNumber(value, miles);
+      node.classList.toggle("empty", empty);
+    }
+
+    function render(snap) {
+      latest = snap;
+      const waiting = !snap.plc_online || !snap.has_data;
+      banner.classList.toggle("demo", Boolean(snap.demo));
+      banner.classList.toggle("show", Boolean(snap.demo) || !snap.plc_online);
+      banner.textContent = snap.demo ? "Simulación" : "Sin conexión";
+      board.classList.toggle("stale", waiting);
+      setValue("v-cajas", snap.cajas_min, false);
+      setValue("v-paros-min", snap.paros_min, false);
+      setValue("v-paros-veces", snap.paros_veces, false);
+      setValue("v-total", snap.total, true);
+      setValue("v-promedio", snap.promedio, false);
+      const showPromedio = Boolean(snap.show_promedio);
+      board.classList.toggle("hide-promedio", !showPromedio);
+      promedioCell.classList.toggle("is-hidden", !showPromedio);
+      cajasCell.classList.remove("green", "amber", "red");
+      promedioCell.classList.remove("green", "amber", "red");
+      const colorName = showPromedio ? snap.promedio_color : snap.rate_color;
+      const colorCell = showPromedio ? promedioCell : cajasCell;
+      if (!waiting && colorName && colorName !== "neutral") {
+        colorCell.classList.add(colorName);
+      }
+      if (panel.hidden) fillForm(snap);
+    }
+
+    function fillForm(snap) {
+      document.getElementById("green-at").value = snap.thresholds.green_at;
+      document.getElementById("red-below").value = snap.thresholds.red_below;
+      document.getElementById("stop-gap").value = snap.stop_gap_seconds;
+      document.getElementById("demo").checked = Boolean(snap.demo);
+      document.getElementById("show-promedio").checked = Boolean(snap.show_promedio);
+      updateHint();
+    }
+
+    function updateHint() {
+      const green = Number(document.getElementById("green-at").value);
+      const red = Number(document.getElementById("red-below").value);
+      if (!(green > red)) {
+        hint.textContent = "El verde tiene que ser mayor que el rojo.";
+        return;
+      }
+      hint.textContent = "Desde " + green + " queda en verde. Por debajo de " + red +
+        " queda en rojo. De " + red + " a " + (green - 1) + " queda en ámbar.";
+    }
+
+    async function loadSnapshot() {
+      const response = await fetch("/api/snapshot");
+      render(await response.json());
+    }
+
+    function connect() {
+      const protocol = location.protocol === "https:" ? "wss" : "ws";
+      const socket = new WebSocket(protocol + "://" + location.host + "/ws");
+      socket.onmessage = (event) => render(JSON.parse(event.data));
+      socket.onclose = () => setTimeout(connect, 1000);
+    }
+
+    document.getElementById("open-settings").addEventListener("click", () => {
+      if (latest) fillForm(latest);
+      error.textContent = "";
+      panel.hidden = false;
+    });
+    document.getElementById("cancel").addEventListener("click", () => {
+      panel.hidden = true;
+    });
+    document.getElementById("green-at").addEventListener("input", updateHint);
+    document.getElementById("red-below").addEventListener("input", updateHint);
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      error.textContent = "";
+      const body = {
+        green_at: Number(document.getElementById("green-at").value),
+        red_below: Number(document.getElementById("red-below").value),
+        stop_gap_seconds: Number(document.getElementById("stop-gap").value),
+        demo: document.getElementById("demo").checked,
+        show_promedio: document.getElementById("show-promedio").checked
+      };
+      const response = await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        error.textContent = payload.detail || "No se pudo guardar.";
+        return;
+      }
+      render(payload);
+      panel.hidden = true;
+      saved.hidden = false;
+      setTimeout(() => { saved.hidden = true; }, 1600);
+    });
+
+    loadSnapshot().catch(() => {});
+    connect();
+  </script>
+</body>
+</html>

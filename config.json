@@ -1,0 +1,52 @@
+{
+  "plc": {
+    "host": "192.168.0.10",
+    "port": 502,
+    "unit_id": 1,
+    "poll_ms": 500,
+    "word_order": "CDAB",
+    "stop_gap_seconds": 10
+  },
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8080
+  },
+  "thresholds": {
+    "green_at": 72,
+    "red_below": 71
+  },
+  "demo": true,
+  "show_promedio": false,
+  "variables": [
+    {
+      "id": "total",
+      "name": "Total de cajas",
+      "address": 0,
+      "type": "uint32"
+    },
+    {
+      "id": "cajas_min",
+      "name": "Cajas / min",
+      "address": 2,
+      "type": "uint16"
+    },
+    {
+      "id": "paros_min",
+      "name": "Paros (min)",
+      "address": 4,
+      "type": "uint16"
+    },
+    {
+      "id": "paros_veces",
+      "name": "Paros (veces)",
+      "address": 6,
+      "type": "uint16"
+    },
+    {
+      "id": "minutos_turno",
+      "name": "Minutos de turno",
+      "address": 8,
+      "type": "uint16"
+    }
+  ]
+}

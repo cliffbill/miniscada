@@ -1,0 +1,38 @@
+Esos pasos son solo para la otra PC. En esta ya está instalado.
+
+En la otra PC entra a https://www.python.org/downloads/ e instala Python. En la primera pantalla marca Add python.exe to PATH y luego Install Now.
+
+Copia la carpeta MiniScada a esa PC, por ejemplo a C:\MiniScada. No copies la carpeta .venv ni la carpeta logs.
+
+Abre PowerShell en esa carpeta. En el Explorador de archivos entra a C:\MiniScada, haz clic en la barra de dirección, escribe powershell y pulsa Enter.
+
+Pega estos dos comandos, uno por uno. El primero crea un entorno para este programa. El segundo baja e instala lo que está listado en requirements.txt (el servidor web y la librería que habla con el PLC).
+
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+Espera a que el segundo termine y diga que instaló los paquetes. Con eso los requerimientos quedan listos.
+
+Abre config.json con el Bloc de notas. Cambia la IP del PLC y deja la simulación apagada:
+"host": "192.168.0.10",
+"demo": false,
+Pon la IP real del TM221 en lugar de 192.168.0.10. Guarda el archivo.
+
+En la misma ventana de PowerShell arranca la pantalla:
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8080
+Abre el navegador en http://127.0.0.1:8080. No cierres la ventana de PowerShell: si la cierras, la pantalla se apaga.
+
+Cierra primero la ventana de PowerShell donde está corriendo la pantalla.
+
+Pulsa la tecla Windows, escribe Programador de tareas y ábrelo.
+A la derecha, pulsa Crear tarea (no "Crear tarea básica").
+En General, nombre: MiniScada. Marca Ejecutar tanto si el usuario inició sesión como si no.
+En Desencadenadores, pulsa Nuevo. Arriba elige Al iniciar el sistema. Aceptar.
+En Acciones, pulsa Nueva. Acción: Iniciar un programa.
+Programa: C:\Users\billc\OneDrive\Documents\MiniScada\.venv\Scripts\python.exe
+Argumentos: -m uvicorn app.main:app --host 127.0.0.1 --port 8080
+Iniciar en: C:\Users\billc\OneDrive\Documents\MiniScada
+En Condiciones, quita la marca de Iniciar la tarea solo si el equipo está conectado a la corriente alterna.
+Aceptar. Windows pide la contraseña del usuario de esa PC.
+En la PC de la línea, si la carpeta está en C:\MiniScada, usa esa ruta en el programa y en "Iniciar en".
+
+Para probarlo sin reiniciar: clic derecho en la tarea MiniScada y Ejecutar. Luego abre http://127.0.0.1:8080. Esto enciende el programa. La ventana del navegador al reiniciar sigue siendo el otro paso, el de start-kiosk.ps1.
