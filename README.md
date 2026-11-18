@@ -1,6 +1,6 @@
 # MiniScada
 
-Pantalla de línea para un PLC Schneider TM221CE16R. Lee cinco datos por Modbus TCP y los muestra a pantalla completa. No escribe en el PLC.
+Pantalla de línea para un PLC Schneider TM221CE16R. Lee los datos por Modbus TCP y los muestra a pantalla completa. La única escritura prevista es un bit de reset; falta la dirección que defina el cliente. Ver `INSTALACION.md`.
 
 ## Qué se ve
 

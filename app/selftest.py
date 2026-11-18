@@ -39,30 +39,60 @@ def check_block() -> list[str]:
         "thresholds": {"green_at": 75, "red_below": 60},
         "plc": {"stop_gap_seconds": 10},
     }
-    raw = {"plc_online": True, "has_data": True, "timestamp": "t", **values}
+    raw = {
+        "plc_online": True,
+        "has_data": True,
+        "timestamp": "t",
+        "cajas": 120,
+        "gpm": 80.5,
+        "paros": 4,
+        "tiempo_paro": 45,
+        "machine_on": True,
+    }
     snap = build_snapshot(raw, cfg)
-    if snap["promedio"] != 847 or snap["promedio_color"] != "green":
-        failures.append(f"snapshot dio promedio {snap['promedio']} color {snap['promedio_color']}")
+    if snap["cajas"] != 120 or snap["paros"] != 4 or snap["tiempo_paro"] != 45 or abs(snap["gpm"] - 80.5) > 0.001 or snap["machine_on"] is not True:
+        failures.append(f"snapshot dio {snap}")
+    if snap["rate_color"] != "green":
+        failures.append(f"GPM 80.5 quedó {snap['rate_color']}")
 
     offline = build_snapshot({**raw, "plc_online": False}, cfg)
-    if offline["promedio_color"] != "neutral" or offline["quality"] != "stale":
-        failures.append("al perder el PLC el promedio tiene que quedar neutro")
+    if offline["rate_color"] != "neutral" or offline["quality"] != "stale" or offline["cajas"] != 120:
+        failures.append("al perder el PLC las cajas se conservan y el color queda neutro")
 
     cold = build_snapshot(
         {
             "plc_online": False,
             "has_data": False,
             "timestamp": None,
-            "total": None,
-            "cajas_min": None,
-            "paros_min": None,
-            "paros_veces": None,
-            "minutos_turno": None,
+            "cajas": None,
+            "gpm": None,
+            "paros": None,
+            "tiempo_paro": None,
+            "machine_on": None,
         },
         cfg,
     )
-    if cold["total"] is not None or cold["plc_online"]:
+    if cold["cajas"] is not None or cold["gpm"] is not None or cold["paros"] is not None or cold["tiempo_paro"] is not None or cold["machine_on"] is not None or cold["plc_online"]:
         failures.append("sin PLC la foto inicial no debe inventar números")
+
+    # %MDn y %MFn empiezan en %MWn. %MW28 paros, %MF128 GPM, %MD134 cajas, %MD138 tiempo en paro.
+    configured = [
+        {"id": "paros", "address": 28, "type": "uint16"},
+        {"id": "gpm", "address": 128, "type": "float32"},
+        {"id": "cajas", "address": 134, "type": "int32"},
+        {"id": "tiempo_paro", "address": 138, "type": "int32"},
+    ]
+    block = [0] * 112
+    block[0] = 4
+    block[100] = 0x0000
+    block[101] = 0x42C6
+    block[106] = 99
+    block[107] = 0
+    block[110] = 45
+    block[111] = 0
+    live = decode_block(block, 28, configured, "CDAB")
+    if live.get("paros") != 4 or live.get("cajas") != 99 or live.get("tiempo_paro") != 45 or abs(live.get("gpm", 0) - 99.0) > 0.0001:
+        failures.append(f"mapa final dio {live}")
     return failures
 
 

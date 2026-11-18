@@ -1,10 +1,11 @@
-"""Servidor de la pantalla Andon. Solo lee el PLC."""
+"""Servidor de la pantalla. Lee los contadores y pulsa los bits de reset."""
 
 from __future__ import annotations
 
 import asyncio
 import json
 import logging
+import sys
 import threading
 from contextlib import asynccontextmanager
 from logging.handlers import RotatingFileHandler
@@ -18,9 +19,22 @@ from app.config_store import ConfigStore
 from app.poller import Poller
 from app.snapshot import build_snapshot
 
-ROOT = Path(__file__).resolve().parent.parent
+def _runtime_dir() -> Path:
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent
+    return Path(__file__).resolve().parent.parent
+
+
+def _bundle_dir() -> Path:
+    if getattr(sys, "frozen", False):
+        return Path(sys._MEIPASS)
+    return _runtime_dir()
+
+
+ROOT = _runtime_dir()
 CONFIG_PATH = ROOT / "config.json"
-STATIC = ROOT / "static" / "index.html"
+STATIC = _bundle_dir() / "static" / "index.html"
+IMG_DIR = ROOT / "img"
 LOG_DIR = ROOT / "logs"
 
 log = logging.getLogger("miniscada")
@@ -32,6 +46,10 @@ class SettingsIn(BaseModel):
     stop_gap_seconds: int
     demo: bool = False
     show_promedio: bool = False
+
+
+class ResetIn(BaseModel):
+    id: str
 
 
 class Hub:
@@ -143,6 +161,30 @@ async def save_settings(body: SettingsIn) -> dict:
     return payload
 
 
+@app.post("/api/reset")
+async def reset_counter(body: ResetIn) -> dict:
+    cfg = store.get()
+    if cfg.get("demo"):
+        raise HTTPException(status_code=400, detail="En simulación no se escribe al PLC.")
+    match = next((item for item in cfg["resets"] if item["id"] == body.id), None)
+    if match is None:
+        raise HTTPException(status_code=400, detail="Ese reset no está configurado.")
+    address = int(match["address"])
+    try:
+        await asyncio.to_thread(poller.pulse, address)
+    except TimeoutError as exc:
+        raise HTTPException(status_code=504, detail="El PLC no confirmó el reset.") from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except Exception as exc:
+        log.warning("Reset fallido: %s", exc)
+        raise HTTPException(status_code=502, detail=f"No se pudo escribir %M{address}.") from exc
+    log.info("Reset %s en %%M%s", match["name"], address)
+    payload = build_snapshot(poller.snapshot_raw(), store.get())
+    await hub.broadcast(payload)
+    return payload
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(socket: WebSocket) -> None:
     await socket.accept()
@@ -160,3 +202,11 @@ async def websocket_endpoint(socket: WebSocket) -> None:
 @app.get("/")
 def index() -> FileResponse:
     return FileResponse(STATIC, headers={"Cache-Control": "no-cache"})
+
+
+@app.get("/img/{name}")
+def brand_image(name: str) -> FileResponse:
+    path = (IMG_DIR / name).resolve()
+    if path.parent != IMG_DIR.resolve() or not path.is_file():
+        raise HTTPException(status_code=404, detail="No está la imagen.")
+    return FileResponse(path)

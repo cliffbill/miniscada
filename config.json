@@ -1,6 +1,6 @@
 {
   "plc": {
-    "host": "192.168.0.10",
+    "host": "192.168.10.10",
     "port": 502,
     "unit_id": 1,
     "poll_ms": 500,
@@ -12,41 +12,63 @@
     "port": 8080
   },
   "thresholds": {
-    "green_at": 72,
-    "red_below": 71
+    "green_at": 20,
+    "red_below": 15
   },
-  "demo": true,
+  "demo": false,
+  "machine": {
+    "symbol": "%M105",
+    "address": 105
+  },
+  "resets": [
+    {
+      "id": "cajas",
+      "name": "Contador de cajas",
+      "symbol": "%M39",
+      "address": 39
+    },
+    {
+      "id": "paros",
+      "name": "Cantidad de paros",
+      "symbol": "%M40",
+      "address": 40
+    },
+    {
+      "id": "tiempo_paro",
+      "name": "Tiempo en paro",
+      "symbol": "%M43",
+      "address": 43
+    }
+  ],
   "show_promedio": false,
   "variables": [
     {
-      "id": "total",
-      "name": "Total de cajas",
-      "address": 0,
-      "type": "uint32"
+      "id": "cajas",
+      "name": "Contador de cajas",
+      "symbol": "%MD134",
+      "address": 134,
+      "type": "int32"
     },
     {
-      "id": "cajas_min",
-      "name": "Cajas / min",
-      "address": 2,
+      "id": "gpm",
+      "name": "GPM",
+      "symbol": "%MF128",
+      "address": 128,
+      "type": "float32"
+    },
+    {
+      "id": "paros",
+      "name": "Cantidad de paros",
+      "symbol": "%MW28",
+      "address": 28,
       "type": "uint16"
     },
     {
-      "id": "paros_min",
-      "name": "Paros (min)",
-      "address": 4,
-      "type": "uint16"
-    },
-    {
-      "id": "paros_veces",
-      "name": "Paros (veces)",
-      "address": 6,
-      "type": "uint16"
-    },
-    {
-      "id": "minutos_turno",
-      "name": "Minutos de turno",
-      "address": 8,
-      "type": "uint16"
+      "id": "tiempo_paro",
+      "name": "Tiempo en paro",
+      "symbol": "%MD138",
+      "address": 138,
+      "type": "int32"
     }
   ]
 }

@@ -9,8 +9,8 @@ from pathlib import Path
 
 from app.decode import WORD_ORDERS
 
-REQUIRED_IDS = ("total", "cajas_min", "paros_min", "paros_veces", "minutos_turno")
-WIDTHS = {"uint16": 1, "uint32": 2}
+KNOWN_IDS = ("cajas", "gpm", "paros", "tiempo_paro")
+WIDTHS = {"uint16": 1, "uint32": 2, "int32": 2, "float32": 2}
 
 
 class ConfigError(Exception):
@@ -67,8 +67,26 @@ def _validate(data: dict) -> None:
         green = data["thresholds"]["green_at"]
         red = data["thresholds"]["red_below"]
         variables = data["variables"]
+        machine = data["machine"]
     except (KeyError, TypeError) as exc:
         raise ConfigError(f"config.json incompleto: {exc}") from exc
+    machine_address = machine.get("address") if isinstance(machine, dict) else None
+    if not isinstance(machine_address, int) or machine_address < 0:
+        raise ConfigError("machine.address tiene que ser el número del bit %M, desde 0")
+    resets = data.get("resets")
+    if not isinstance(resets, list) or not resets:
+        raise ConfigError("Faltan los bits de reset")
+    seen: set[str] = set()
+    for item in resets:
+        if not isinstance(item, dict):
+            raise ConfigError("Reset inválido")
+        reset_id = item.get("id")
+        reset_address = item.get("address")
+        if not isinstance(reset_id, str) or not reset_id or reset_id in seen:
+            raise ConfigError("Hay un reset repetido o sin nombre")
+        seen.add(reset_id)
+        if not isinstance(reset_address, int) or reset_address < 0:
+            raise ConfigError(f"Dirección inválida en el reset {reset_id}")
     if order not in WORD_ORDERS:
         raise ConfigError("plc.word_order tiene que ser ABCD o CDAB")
     if not isinstance(gap, int) or not 1 <= gap <= 3600:
@@ -81,10 +99,14 @@ def _validate(data: dict) -> None:
         raise ConfigError("demo tiene que ser true o false")
     if "show_promedio" in data and not isinstance(data["show_promedio"], bool):
         raise ConfigError("show_promedio tiene que ser true o false")
+    if not variables:
+        raise ConfigError("config.json no tiene variables")
     ids = [item.get("id") for item in variables]
-    missing = [name for name in REQUIRED_IDS if name not in ids]
-    if missing:
-        raise ConfigError(f"Faltan variables: {', '.join(missing)}")
+    if len(ids) != len(set(ids)):
+        raise ConfigError("Hay una variable repetida")
+    unknown = [name for name in ids if name not in KNOWN_IDS]
+    if unknown:
+        raise ConfigError(f"Variable desconocida: {', '.join(str(name) for name in unknown)}")
     for item in variables:
         if item.get("type") not in WIDTHS:
             raise ConfigError(f"Tipo no soportado en {item.get('id')}")

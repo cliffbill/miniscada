@@ -20,6 +20,13 @@ def decode_u32(low_address: int, high_address: int, word_order: str) -> int:
     return ((high & 0xFFFF) << 16) | (low & 0xFFFF)
 
 
+def decode_i32(low_address: int, high_address: int, word_order: str) -> int:
+    raw = decode_u32(low_address, high_address, word_order)
+    if raw >= 0x80000000:
+        raw -= 0x100000000
+    return raw
+
+
 def decode_f32(low_address: int, high_address: int, word_order: str) -> float:
     raw = decode_u32(low_address, high_address, word_order)
     return struct.unpack(">f", struct.pack(">I", raw))[0]
@@ -54,4 +61,8 @@ def self_check() -> list[str]:
             value = decode_u32(first, second, order)
             if value != expected:
                 failures.append(f"uint32 {expected} {order} dio {value}")
+    if decode_i32(0x4227, 0x0000, "CDAB") != 16935:
+        failures.append("int32 16935 CDAB")
+    if decode_i32(0xFFFF, 0xFFFF, "CDAB") != -1:
+        failures.append("int32 -1 CDAB")
     return failures

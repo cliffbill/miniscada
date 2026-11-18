@@ -32,7 +32,7 @@
       min-height: 0;
       display: grid;
       grid-template-columns: 1fr 1fr;
-      grid-template-rows: 1.35fr 0.72fr 1fr;
+      grid-template-rows: 1.15fr 0.48fr 0.85fr 0.85fr;
       gap: 8px;
       padding: 8px;
       background: #111;
@@ -63,34 +63,37 @@
     }
     .mid .label { font-size: 2.5vh; }
     .mid .value { font-size: 9vh; }
-    .total {
-      grid-column: 1 / -1;
-      flex-direction: row;
-      align-items: center;
-      padding-right: 3vw;
-    }
-    .total .label {
-      width: 30%;
-      font-size: 7vh;
+    #cell-gpm, #cell-machine, #cell-paro { grid-column: 1 / -1; }
+    #cell-cajas .value, #cell-paros .value, #cell-paro .value { font-size: 12vh; }
+    .value.empty, #cell-cajas .value.empty, #cell-paros .value.empty, #cell-paro .value.empty { font-size: 8vh; }
+    button.reset {
+      font: 700 16px "Segoe UI", Arial, sans-serif;
+      padding: 10px 12px;
+      border-radius: 6px;
+      border: 1px solid #111;
+      background: #fff;
+      cursor: pointer;
       text-align: left;
-      padding-left: 1vw;
     }
-    .total .value {
-      justify-content: flex-end;
-      font-size: 14vh;
-      padding-right: 1vw;
+    button.reset:disabled { opacity: 0.4; cursor: default; }
+    #cell-gpm.green { background: #128a2e; color: #fff; }
+    #cell-gpm.amber { background: #f08c00; color: #111; }
+    #cell-gpm.red { background: #c41212; color: #fff; }
+    button.cell {
+      font: inherit;
+      color: inherit;
+      border: 0;
+      cursor: pointer;
+      width: 100%;
     }
-    .value.empty { font-size: 8vh; }
-    .total .value.empty { justify-content: center; }
-    #cell-cajas.green,
-    #cell-promedio.green { background: #128a2e; color: #fff; }
-    #cell-cajas.amber,
-    #cell-promedio.amber { background: #f08c00; color: #111; }
-    #cell-cajas.red,
-    #cell-promedio.red { background: #c41212; color: #fff; }
-    #board.hide-promedio #cell-cajas { grid-column: 1 / -1; }
-    #cell-promedio.is-hidden { display: none; }
+    #cell-machine.working { background: #128a2e; color: #fff; }
+    #cell-machine.off { background: #c41212; color: #fff; }
+    #board.stale #cell-machine.working,
+    #board.stale #cell-machine.off { background: #e4e4e4; color: #3a3a3a; }
+    button.cell:disabled { cursor: default; }
     #board.stale .cell { background: #e4e4e4; color: #3a3a3a; }
+    #cell-paro,
+    #board.stale #cell-paro { background: #c41212; color: #fff; }
     #open-settings {
       position: fixed;
       right: 12px;
@@ -151,44 +154,61 @@
       font-weight: 700;
     }
     #saved[hidden] { display: none !important; }
+    #brand {
+      flex: none;
+      height: 12vh;
+      min-height: 64px;
+      background: #f4f7f8;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.8vh 1.4vw;
+      gap: 1.4vw;
+    }
+    #brand img {
+      height: 100%;
+      width: auto;
+      max-width: min(46vw, 520px);
+      object-fit: contain;
+    }
     @media (max-width: 800px) {
-      .value { font-size: 11vh; }
       .mid .value { font-size: 6vh; }
-      .total { flex-direction: column; align-items: stretch; }
-      .total .label { width: auto; text-align: center; font-size: 4vh; }
-      .total .value { justify-content: center; font-size: 9vh; }
     }
   </style>
 </head>
 <body>
+  <header id="brand">
+    <img src="/img/logo.jpeg" alt="CZelaya Ingeniería Eléctrica">
+    <img src="/img/logo2.jpeg" alt="Empaques Santo Domingo">
+  </header>
   <div id="banner">Sin conexión</div>
-  <main id="board" class="stale hide-promedio">
+  <main id="board" class="stale">
+    <section class="cell" id="cell-gpm">
+      <div class="label">GPM</div>
+      <div class="value empty" id="v-gpm">—</div>
+    </section>
+    <section class="cell mid" id="cell-machine">
+      <div class="label">Máquina</div>
+      <div class="value empty" id="v-machine">—</div>
+    </section>
     <section class="cell" id="cell-cajas">
-      <div class="label">Cajas / min</div>
+      <div class="label">Cajas</div>
       <div class="value empty" id="v-cajas">—</div>
     </section>
-    <section class="cell is-hidden" id="cell-promedio">
-      <div class="label">Promedio</div>
-      <div class="value empty" id="v-promedio">—</div>
+    <section class="cell" id="cell-paros">
+      <div class="label">Paros</div>
+      <div class="value empty" id="v-paros">—</div>
     </section>
-    <section class="cell mid">
-      <div class="label">Paros (min)</div>
-      <div class="value empty" id="v-paros-min">—</div>
-    </section>
-    <section class="cell mid">
-      <div class="label">Paros (veces)</div>
-      <div class="value empty" id="v-paros-veces">—</div>
-    </section>
-    <section class="cell total">
-      <div class="label">Total</div>
-      <div class="value empty" id="v-total">—</div>
+    <section class="cell" id="cell-paro">
+      <div class="label">Tiempo en paro</div>
+      <div class="value empty" id="v-paro">—</div>
     </section>
   </main>
   <button id="open-settings" type="button">Ajustes</button>
   <div id="saved" hidden>Guardado</div>
   <div id="panel" hidden>
     <form id="form">
-      <h2>Meta de cajas por minuto</h2>
+      <h2>Meta de GPM</h2>
       <label>Verde desde
         <input id="green-at" name="green_at" type="number" min="0" max="100000" required>
       </label>
@@ -196,14 +216,13 @@
         <input id="red-below" name="red_below" type="number" min="0" max="100000" required>
       </label>
       <p class="hint" id="hint"></p>
-      <label>Segundos sin pulso
-        <input id="stop-gap" name="stop_gap_seconds" type="number" min="1" max="3600" required>
-      </label>
-      <p class="note">El temporizador del sensor está en el PLC. Al cambiar estos segundos hay que dejar el mismo número en el programa del PLC. La pantalla solo lo guarda.</p>
       <label class="check"><input id="demo" type="checkbox"> Simular sin PLC</label>
-      <p class="note">Muestra 170 cajas/min, paros 98 y 59, total 16.935. El color usa la meta de arriba.</p>
-      <label class="check"><input id="show-promedio" type="checkbox"> Mostrar promedio del turno</label>
-      <p class="note">Apagado, la pantalla enseña solo las cuatro cifras y el color va en Cajas/min. Encendido, vuelve el recuadro Promedio y el color pasa a ese número.</p>
+      <p class="note">Muestra un ejemplo. No escribe al PLC.</p>
+      <h2>Reset</h2>
+      <p class="note">Pulso corto: el bit se pone en 1 y regresa a 0. No se queda activado.</p>
+      <button class="reset" id="reset-cajas" type="button" disabled>Reset contador de cajas</button>
+      <button class="reset" id="reset-paros" type="button" disabled>Reset cantidad de paros</button>
+      <button class="reset" id="reset-tiempo" type="button" disabled>Reset tiempo en paro</button>
       <p id="error"></p>
       <div class="actions">
         <button class="ghost" id="cancel" type="button">Cerrar</button>
@@ -214,8 +233,8 @@
   <script>
     const board = document.getElementById("board");
     const banner = document.getElementById("banner");
-    const promedioCell = document.getElementById("cell-promedio");
-    const cajasCell = document.getElementById("cell-cajas");
+    const gpmCell = document.getElementById("cell-gpm");
+    const machineCell = document.getElementById("cell-machine");
     const panel = document.getElementById("panel");
     const form = document.getElementById("form");
     const hint = document.getElementById("hint");
@@ -223,18 +242,26 @@
     const saved = document.getElementById("saved");
     let latest = null;
 
-    function formatNumber(value, miles) {
+    function formatNumber(value) {
       if (value === null || value === undefined) return "—";
       const rounded = Math.round(value);
-      if (!miles) return String(rounded);
       const sign = rounded < 0 ? "-" : "";
       return sign + String(Math.abs(rounded)).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
     }
 
-    function setValue(id, value, miles) {
+    function formatGpm(value) {
+      if (value === null || value === undefined) return "—";
+      const number = Number(value);
+      const sign = number < 0 ? "-" : "";
+      const [whole, frac] = Math.abs(number).toFixed(1).split(".");
+      const miles = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+      return sign + miles + "," + frac;
+    }
+
+    function setValue(id, text) {
       const node = document.getElementById(id);
-      const empty = value === null || value === undefined;
-      node.textContent = formatNumber(value, miles);
+      const empty = text === "—";
+      node.textContent = text;
       node.classList.toggle("empty", empty);
     }
 
@@ -245,20 +272,22 @@
       banner.classList.toggle("show", Boolean(snap.demo) || !snap.plc_online);
       banner.textContent = snap.demo ? "Simulación" : "Sin conexión";
       board.classList.toggle("stale", waiting);
-      setValue("v-cajas", snap.cajas_min, false);
-      setValue("v-paros-min", snap.paros_min, false);
-      setValue("v-paros-veces", snap.paros_veces, false);
-      setValue("v-total", snap.total, true);
-      setValue("v-promedio", snap.promedio, false);
-      const showPromedio = Boolean(snap.show_promedio);
-      board.classList.toggle("hide-promedio", !showPromedio);
-      promedioCell.classList.toggle("is-hidden", !showPromedio);
-      cajasCell.classList.remove("green", "amber", "red");
-      promedioCell.classList.remove("green", "amber", "red");
-      const colorName = showPromedio ? snap.promedio_color : snap.rate_color;
-      const colorCell = showPromedio ? promedioCell : cajasCell;
-      if (!waiting && colorName && colorName !== "neutral") {
-        colorCell.classList.add(colorName);
+      setValue("v-gpm", formatGpm(snap.gpm));
+      setValue("v-cajas", formatNumber(snap.cajas));
+      setValue("v-paros", formatNumber(snap.paros));
+      setValue("v-paro", formatNumber(snap.tiempo_paro));
+      const machineKnown = snap.machine_on === true || snap.machine_on === false;
+      const machineText = machineKnown ? (snap.machine_on ? "Encendida" : "Apagada") : "—";
+      setValue("v-machine", machineText);
+      machineCell.classList.toggle("working", machineKnown && Boolean(snap.machine_on) && !waiting);
+      machineCell.classList.toggle("off", machineKnown && !snap.machine_on && !waiting);
+      const resetLocked = waiting || Boolean(snap.demo);
+      document.querySelectorAll("button.reset").forEach((button) => {
+        button.disabled = resetLocked;
+      });
+      gpmCell.classList.remove("green", "amber", "red");
+      if (!waiting && snap.rate_color && snap.rate_color !== "neutral") {
+        gpmCell.classList.add(snap.rate_color);
       }
       if (panel.hidden) fillForm(snap);
     }
@@ -266,9 +295,7 @@
     function fillForm(snap) {
       document.getElementById("green-at").value = snap.thresholds.green_at;
       document.getElementById("red-below").value = snap.thresholds.red_below;
-      document.getElementById("stop-gap").value = snap.stop_gap_seconds;
       document.getElementById("demo").checked = Boolean(snap.demo);
-      document.getElementById("show-promedio").checked = Boolean(snap.show_promedio);
       updateHint();
     }
 
@@ -295,6 +322,26 @@
       socket.onclose = () => setTimeout(connect, 1000);
     }
 
+    async function sendReset(id) {
+      if (!latest || !latest.plc_online || latest.demo) return;
+      const response = await fetch("/api/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: id })
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        error.textContent = payload.detail || "No se pudo escribir el bit.";
+        return;
+      }
+      render(payload);
+      saved.textContent = "Reset enviado";
+      saved.hidden = false;
+      setTimeout(() => { saved.hidden = true; saved.textContent = "Guardado"; }, 1600);
+    }
+    document.getElementById("reset-cajas").addEventListener("click", () => sendReset("cajas"));
+    document.getElementById("reset-paros").addEventListener("click", () => sendReset("paros"));
+    document.getElementById("reset-tiempo").addEventListener("click", () => sendReset("tiempo_paro"));
     document.getElementById("open-settings").addEventListener("click", () => {
       if (latest) fillForm(latest);
       error.textContent = "";
@@ -311,9 +358,9 @@
       const body = {
         green_at: Number(document.getElementById("green-at").value),
         red_below: Number(document.getElementById("red-below").value),
-        stop_gap_seconds: Number(document.getElementById("stop-gap").value),
+        stop_gap_seconds: latest && latest.stop_gap_seconds != null ? latest.stop_gap_seconds : 10,
         demo: document.getElementById("demo").checked,
-        show_promedio: document.getElementById("show-promedio").checked
+        show_promedio: false
       };
       const response = await fetch("/api/settings", {
         method: "POST",
